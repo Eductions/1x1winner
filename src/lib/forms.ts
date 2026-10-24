@@ -1,6 +1,6 @@
 /**
- * Pure validation/normalisation helpers for auth and lobby forms.
- * Kept framework-free so they are trivially unit-testable.
+ * Pure validation/normalisation helpers for lobby forms and shared error
+ * copy. Kept framework-free so they are trivially unit-testable.
  */
 
 export const ROOM_CODE_LENGTH = 6;
@@ -17,30 +17,7 @@ export function isValidRoomCode(code: string): boolean {
   return new RegExp(`^[A-HJ-NP-Z0-9]{${ROOM_CODE_LENGTH}}$`).test(code);
 }
 
-export function validateEmail(email: string): string | null {
-  const value = email.trim();
-  if (!value) return "Email is required.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email address.";
-  return null;
-}
-
-export function validatePassword(password: string): string | null {
-  if (!password) return "Password is required.";
-  if (password.length < 8) return "Password must be at least 8 characters.";
-  return null;
-}
-
-export function validateUsername(username: string): string | null {
-  const value = username.trim();
-  if (value.length < 3) return "Username must be at least 3 characters.";
-  if (value.length > 30) return "Username must be 30 characters or fewer.";
-  if (!/^[a-zA-Z0-9_.-]+$/.test(value)) {
-    return "Use letters, numbers, dots, dashes or underscores only.";
-  }
-  return null;
-}
-
-/** Maps Postgres/RPC error messages to friendly UI copy. */
+/** Maps Postgres/RPC/API error messages to friendly UI copy. */
 export function friendlyErrorMessage(message: string): string {
   const map: Record<string, string> = {
     ROOM_NOT_FOUND: "No room exists with this code.",
@@ -51,7 +28,16 @@ export function friendlyErrorMessage(message: string): string {
     QUESTION_MISMATCH: "This question has expired — a new one is on its way.",
     ANSWER_ALREADY_RECORDED: "This answer was already recorded.",
     NOT_TEAM_MEMBER: "You are not a member of this team.",
-    INVALID_LOGIN_CREDENTIALS: "Incorrect email or password.",
+    INVALID_LOGIN_CREDENTIALS: "Incorrect name or access code.",
+    SUPERVISOR_ONLY: "Only the supervisor can manage player accounts.",
+    PLAYER_ALREADY_EXISTS: "A player with this name already exists.",
+    PLAYER_NOT_FOUND: "This player account could not be found.",
+    SETUP_ALREADY_COMPLETED: "Supervisor setup is already complete.",
+    SETUP_NOT_CONFIGURED:
+      "Supervisor setup is not configured on the server yet.",
+    INVALID_SETUP_SECRET: "The setup key is incorrect.",
+    SECURE_LOGIN_UNAVAILABLE:
+      "Secure sign-in is unavailable in this browser context. Open the HTTPS site and try again.",
   };
   for (const [code, friendly] of Object.entries(map)) {
     if (message.includes(code)) return friendly;
@@ -59,8 +45,12 @@ export function friendlyErrorMessage(message: string): string {
   if (message.includes("Invalid login credentials")) {
     return map.INVALID_LOGIN_CREDENTIALS;
   }
-  if (message.includes("already registered") || message.includes("already exists")) {
-    return "An account with this email already exists — try signing in.";
+  if (
+    message.includes("already registered") ||
+    message.includes("already exists") ||
+    message.includes("already been registered")
+  ) {
+    return map.PLAYER_ALREADY_EXISTS;
   }
   return message;
 }

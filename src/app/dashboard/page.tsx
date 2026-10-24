@@ -23,7 +23,7 @@ export default async function DashboardPage() {
     .single();
 
   const username =
-    profile?.username ?? user.user_metadata?.username ?? user.email?.split("@")[0] ?? "Player";
+    profile?.username ?? user.user_metadata?.username ?? "Player";
   const role: UserRole = profile?.role === "teacher" ? "teacher" : "student";
 
   return <DashboardView username={username} role={role} />;

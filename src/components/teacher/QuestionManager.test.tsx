@@ -124,6 +124,6 @@ describe("<QuestionManager />", () => {
     await userEvent.type(screen.getByLabelText("Option D"), "Fourth option");
     await userEvent.click(screen.getByRole("button", { name: /add question/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/only teachers/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/only the supervisor/i);
   });
 });

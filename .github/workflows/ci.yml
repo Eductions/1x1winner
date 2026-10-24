@@ -24,7 +24,7 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Run tests (107 TDD specs)
+      - name: Run tests (135 TDD specs)
         run: npm test
 
       - name: Production build

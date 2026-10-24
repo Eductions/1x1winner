@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Trophy, History, BarChart3 } from "lucide-react";
+import { BarChart3, History, Loader2, ShieldCheck, Trophy } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { AppHeader } from "@/components/AppHeader";
 import { StatsCards } from "@/components/StatsCards";
 import { Leaderboard } from "@/components/Leaderboard";
 import { MatchHistory } from "@/components/MatchHistory";
-import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { PlayerManager } from "@/components/teacher/PlayerManager";
 import { QuestionManager } from "@/components/teacher/QuestionManager";
 import { emptyStats } from "@/lib/stats";
 import type {
@@ -27,6 +27,7 @@ export function DashboardView({ username, role }: DashboardViewProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<MatchHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const isSupervisor = role === "teacher";
 
   useEffect(() => {
     let cancelled = false;
@@ -58,23 +59,31 @@ export function DashboardView({ username, role }: DashboardViewProps) {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-white">
-            {role === "teacher" ? "Teacher dashboard" : "Student dashboard"}
+            {isSupervisor ? "Supervisor control panel" : "Student dashboard"}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
             Signed in as <span className="font-bold text-amber-300">{username}</span>
           </p>
         </div>
-        <RoleSwitcher role={role} />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3.5 py-2 text-sm font-bold text-slate-200">
+          <ShieldCheck className="h-4 w-4 text-amber-300" />
+          {isSupervisor ? "Supervisor" : "Student"}
+        </span>
       </div>
 
+      {isSupervisor && (
+        <div className="mb-10 space-y-10">
+          <PlayerManager />
+          <QuestionManager />
+        </div>
+      )}
+
       {loading ? (
-        <p className="flex items-center gap-2 py-16 justify-center text-slate-400">
+        <p className="flex items-center justify-center gap-2 py-16 text-slate-400">
           <Loader2 className="h-6 w-6 animate-spin" /> Loading your dashboard…
         </p>
       ) : (
         <div className="space-y-10">
-          {role === "teacher" && <QuestionManager />}
-
           <section>
             <h2 className="mb-4 flex items-center gap-2 text-xl font-black text-white">
               <BarChart3 className="h-5 w-5 text-sky-400" /> Your performance

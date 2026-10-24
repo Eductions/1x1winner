@@ -3,9 +3,6 @@ import {
   friendlyErrorMessage,
   isValidRoomCode,
   normalizeRoomCode,
-  validateEmail,
-  validatePassword,
-  validateUsername,
 } from "./forms";
 
 describe("room code helpers", () => {
@@ -27,35 +24,22 @@ describe("room code helpers", () => {
   });
 });
 
-describe("credential validation", () => {
-  it("validates email format", () => {
-    expect(validateEmail("student@u.edu.ly")).toBeNull();
-    expect(validateEmail("not-an-email")).not.toBeNull();
-    expect(validateEmail("  ")).not.toBeNull();
-  });
-
-  it("requires an 8-character password", () => {
-    expect(validatePassword("short1")).not.toBeNull();
-    expect(validatePassword("longenough123")).toBeNull();
-  });
-
-  it("validates username length and allowed characters", () => {
-    expect(validateUsername("ab")).not.toBeNull();
-    expect(validateUsername("good_name.1-")).toBeNull();
-    expect(validateUsername("bad name!")).not.toBeNull();
-  });
-});
-
 describe("friendlyErrorMessage", () => {
   it("maps RPC codes to friendly copy", () => {
     expect(friendlyErrorMessage("ROOM_NOT_FOUND")).toBe("No room exists with this code.");
     expect(friendlyErrorMessage("ROOM_FULL")).toBe("This room already has two teams.");
     expect(friendlyErrorMessage("NOT_YOUR_TURN")).toBe("It is the other team's turn.");
+    expect(friendlyErrorMessage("SUPERVISOR_ONLY")).toBe(
+      "Only the supervisor can manage player accounts.",
+    );
   });
 
-  it("maps raw Supabase auth errors and falls back to the original message", () => {
+  it("maps raw Supabase auth errors to name-and-code copy", () => {
     expect(friendlyErrorMessage("Invalid login credentials")).toBe(
-      "Incorrect email or password.",
+      "Incorrect name or access code.",
+    );
+    expect(friendlyErrorMessage("User already registered")).toBe(
+      "A player with this name already exists.",
     );
     expect(friendlyErrorMessage("some unmapped failure")).toBe("some unmapped failure");
   });
