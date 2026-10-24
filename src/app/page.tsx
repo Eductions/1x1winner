@@ -35,6 +35,10 @@ export default function LandingPage() {
         </Link>
       </div>
 
+      <p className="mt-4 text-sm text-slate-500">
+        Students sign in with the name and personal code provided by their supervisor.
+      </p>
+
       <div className="mt-16 grid w-full gap-4 text-left sm:grid-cols-3">
         {[
           {

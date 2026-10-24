@@ -28,7 +28,7 @@ export default async function RoomPage({
     .single();
 
   const username =
-    profile?.username ?? user.user_metadata?.username ?? user.email?.split("@")[0] ?? "Player";
+    profile?.username ?? user.user_metadata?.username ?? "Player";
 
   return <GameRoom roomCode={code.toUpperCase()} user={{ id: user.id, username }} />;
 }

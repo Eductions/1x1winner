@@ -24,6 +24,15 @@ export interface Profile {
   created_at: string;
 }
 
+/** Student account managed by the supervisor from the control panel. */
+export interface ManagedPlayer {
+  id: string;
+  /** Exact name the player types at sign-in. */
+  name: string;
+  created_at: string;
+  disabled: boolean;
+}
+
 export interface QuestionOption {
   key: AnswerKey;
   text: string;

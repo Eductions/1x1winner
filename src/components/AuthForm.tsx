@@ -1,41 +1,32 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { LogIn, UserPlus, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, LogIn } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import {
-  friendlyErrorMessage,
-  validateEmail,
-  validatePassword,
-  validateUsername,
-} from "@/lib/forms";
-
-type Mode = "signin" | "signup";
+  internalEmailForName,
+  validateAccessCode,
+  validatePlayerName,
+} from "@/lib/accessCredentials";
+import { friendlyErrorMessage } from "@/lib/forms";
 
 interface AuthFormProps {
-  initialMode?: Mode;
   onSuccess?: () => void;
 }
 
-export function AuthForm({ initialMode = "signin", onSuccess }: AuthFormProps) {
-  const [mode, setMode] = useState<Mode>(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+export function AuthForm({ onSuccess }: AuthFormProps) {
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
-    if (emailError) next.email = emailError;
-    if (passwordError) next.password = passwordError;
-    if (mode === "signup") {
-      const usernameError = validateUsername(username);
-      if (usernameError) next.username = usernameError;
-    }
+    const nameError = validatePlayerName(name);
+    const codeError = validateAccessCode(code);
+    if (nameError) next.name = nameError;
+    if (codeError) next.code = codeError;
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -46,23 +37,14 @@ export function AuthForm({ initialMode = "signin", onSuccess }: AuthFormProps) {
     if (!validate()) return;
 
     setSubmitting(true);
-    const supabase = getSupabaseClient();
-
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: { data: { username: username.trim() } },
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-      }
+      const supabase = getSupabaseClient();
+      const email = await internalEmailForName(name);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: code,
+      });
+      if (error) throw error;
       onSuccess?.();
     } catch (err) {
       setFormError(friendlyErrorMessage((err as Error).message));
@@ -73,58 +55,36 @@ export function AuthForm({ initialMode = "signin", onSuccess }: AuthFormProps) {
 
   return (
     <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-xl">
-      <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl bg-slate-800 p-1">
-        {(["signin", "signup"] as Mode[]).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => {
-              setMode(tab);
-              setErrors({});
-              setFormError(null);
-            }}
-            className={`rounded-lg py-2 text-sm font-bold transition ${
-              mode === tab
-                ? "bg-amber-400 text-slate-950"
-                : "text-slate-300 hover:text-white"
-            }`}
-          >
-            {tab === "signin" ? "Sign in" : "Create account"}
-          </button>
-        ))}
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300">
+          <KeyRound className="h-6 w-6" />
+        </div>
+        <h1 className="text-2xl font-black text-white">Sign in with your code</h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          Use the exact name and personal access code given to you by your
+          supervisor. No email address is needed.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        {mode === "signup" && (
-          <Field
-            id="username"
-            label="Username"
-            value={username}
-            onChange={setUsername}
-            placeholder="english.champ"
-            error={errors.username}
-            autoComplete="username"
-          />
-        )}
         <Field
-          id="email"
-          label="University email"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          placeholder="you@university.edu"
-          error={errors.email}
-          autoComplete="email"
+          id="name"
+          label="Your name"
+          value={name}
+          onChange={setName}
+          placeholder="Write your name exactly"
+          error={errors.name}
+          autoComplete="username"
         />
         <Field
-          id="password"
-          label="Password"
+          id="code"
+          label="Access code"
           type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="At least 8 characters"
-          error={errors.password}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          value={code}
+          onChange={setCode}
+          placeholder="Your personal code"
+          error={errors.code}
+          autoComplete="current-password"
         />
 
         {formError && (
@@ -143,21 +103,17 @@ export function AuthForm({ initialMode = "signin", onSuccess }: AuthFormProps) {
         >
           {submitting ? (
             <Loader2 className="h-5 w-5 animate-spin" />
-          ) : mode === "signin" ? (
-            <LogIn className="h-5 w-5" />
           ) : (
-            <UserPlus className="h-5 w-5" />
+            <LogIn className="h-5 w-5" />
           )}
-          {mode === "signin" ? "Sign in" : "Create account"}
+          Sign in
         </button>
       </form>
 
-      {mode === "signup" && (
-        <p className="mt-4 text-center text-xs leading-relaxed text-slate-500">
-          If email confirmation is enabled in your Supabase project, confirm
-          your inbox before the first sign-in.
-        </p>
-      )}
+      <p className="mt-5 text-center text-xs leading-relaxed text-slate-500">
+        Accounts are created by the supervisor only. If your name is not in the
+        system yet, ask your supervisor to add it from the control panel.
+      </p>
     </div>
   );
 }
@@ -198,6 +154,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        dir="auto"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         className={`w-full rounded-xl border bg-slate-800 px-4 py-2.5 text-white placeholder:text-slate-500 focus:outline-none focus:ring-4 ${

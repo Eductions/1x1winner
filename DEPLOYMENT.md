@@ -1,183 +1,170 @@
 # 🚀 دليل النشر الكامل — Supabase + GitHub + Vercel
 
-ثلاث مراحل بالترتيب: **قاعدة البيانات أولاً**، ثم المستودع، ثم ربط Vercel.
-المدة المتوقعة: 25–35 دقيقة.
+ترتيب الإكمال: **Supabase أولاً**، ثم Vercel، ثم إنشاء المشرفة من داخل
+الموقع، ثم تضيف المشرفة الطلبة بنفسها. المستودع مرفوع أصلاً إلى
+`Gentely/1x1winner` وفرع الإنتاج هو `main`.
+
+## نموذج الدخول
+
+- لا يستخدم أي شخص بريداً إلكترونياً ولا يستطيع الطالب إنشاء حسابه بنفسه.
+- يدخل كل شخص بـ**الاسم + الكود الشخصي** فقط.
+- تُنشئ المالكة/المسؤولة **المشرفة الأولى** مرة واحدة من `/setup`.
+- بعد دخول المشرفة تضيف كل طالب من قسم **Player accounts** في
+  `/dashboard`، باسمه وكوده.
+- تقنياً يستخدم التطبيق جلسات Supabase Auth في الخلفية: يُشتق معرّف داخلي
+  غير ظاهر من بصمة الاسم، ويعمل الكود ككلمة مرور. تُخزَّن الأكواد مشفّرة
+  بواسطة Supabase Auth ولا تُحفظ نصية ولا تظهر لاحقاً.
 
 ---
 
-## المرحلة 1 — إعداد Supabase (قاعدة البيانات والمصادقة)
+## المرحلة 1 — إعداد Supabase
 
 ### 1.1 إنشاء المشروع
 
-1. افتح [supabase.com](https://supabase.com) وسجّل دخولك (يمكنك استخدام GitHub).
-2. **New project** → اختر اسماً مثل `tower-of-english`، وكلمة مرور قوية لقاعدة
-   البيانات (احفظها)، وأقرب منطقة جغرافية (أوروبا/الشرق الأوسط).
-3. انتظر دقيقتين حتى يصبح المشروع جاهزاً.
+1. افتح [supabase.com](https://supabase.com) وسجّل الدخول.
+2. **New project** → اسم مثل `tower-of-english`، وكلمة مرور قوية لقاعدة
+   البيانات تحفظها عندك، وأقرب منطقة جغرافية أوروبية.
+3. انتظر حتى يصبح المشروع جاهزاً.
+
+> لا ترسل كلمة مرور قاعدة البيانات أو أي مفتاح سري في محادثة أو إلى GitHub.
 
 ### 1.2 تشغيل ملفات SQL بالترتيب
 
-من القائمة الجانبية افتح **SQL Editor → New query**، والصق محتوى كل ملف
-وشغّله (Run) واحداً تلو الآخر — الترتيب إلزامي:
+من **SQL Editor → New query** الصق وشغّل كل ملف كاملاً واحداً تلو الآخر.
+إذا فشل ملف توقف ولا تنتقل للتالي:
 
 | الترتيب | الملف | ماذا ينشئ |
 | --- | --- | --- |
 | 1 | `supabase/schema.sql` | الجداول، RLS، RPCs الأساسية، Realtime، 10 أسئلة |
 | 2 | `supabase/migrations/0002_step2_gameplay.sql` | الانضمام للغرف، الأسئلة الآمنة، المؤقّت، اللوبي |
-| 3 | `supabase/migrations/0003_roles_teacher_stats.sql` | الأدوار، لوحة المدرس، الإحصائيات، 20 سؤالاً إضافياً |
+| 3 | `supabase/migrations/0003_roles_teacher_stats.sql` | الأدوار، أسئلة المشرفة، الإحصائيات، 20 سؤالاً إضافياً |
+| 4 | `supabase/migrations/0004_name_code_accounts.sql` | حسابات الاسم + الكود المُدارة ومنع الترقية/التسجيل الذاتي |
 
-✅ للتحقق: افتح **Table Editor** يجب أن ترى الجداول `profiles`, `questions`,
-`room_matches`, `room_answers`، وداخل `questions` 30 سؤالاً.
+للتحقق افتح **Table Editor**: يجب أن ترى `profiles`, `questions`,
+`room_matches`, `room_answers`، وداخل `questions` عدد **30 سؤالاً**.
 
-### 1.3 إعدادات المصادقة
+### 1.3 إعدادات Authentication
 
-1. افتح **Authentication → Providers** وتأكد أن **Email** مفعّل.
-2. للتجربة السريعة: في **Authentication → Sign In / Providers → Email**
-   عطّل **Confirm email** (فيصبح التسجيل فورياً). للإنتاج اتركه مفعّلاً.
-3. بعد نشر Vercel (المرحلة 3) ارجع إلى
-   **Authentication → URL Configuration** وأضف:
-   - **Site URL:** `https://YOUR-APP.vercel.app`
-   - **Redirect URLs:**
-     - `https://YOUR-APP.vercel.app/auth/callback`
-     - `https://YOUR-APP.vercel.app/**`
-   - وأبقِ `http://localhost:3000/**` للتجربة المحلية.
+1. أبقِ موفّر **Email** مفعّلاً؛ هو محرك كلمات المرور الداخلي فقط، ولن
+   يحتاج الطلبة بريداً حقيقياً ولن تصلهم رسائل تأكيد.
+2. أطفئ خيار **Allow new users to sign up** إن وجدته في إعدادات
+   Authentication. حتى لو بقي مفعّلاً، فإن ترحيل 0004 يرفض إنشاء أي حساب
+   غير مُدار من التطبيق (`MANAGED_ACCOUNTS_ONLY`).
+3. يمكن ترك **Confirm email** مفعّلاً؛ الحسابات التي ينشئها خادم التطبيق
+   تكون مؤكدة تلقائياً لأن أكوادها تصدر من المشرفة.
+4. لا حاجة إلى URL Configuration من أجل الدخول العادي بالاسم والكود.
 
-### 1.4 استخراج المفاتيح
+### 1.4 القيم التي ستحتاجها في Vercel
 
-افتح **Project Settings → API** وانسخ قيمتين:
+من **Project Settings → API** خذ:
 
-- **Project URL** → شيء مثل `https://abcdefgh.supabase.co`
-- **anon public key** → مفتاح طويل يبدأ بـ `eyJ...`
+- **Project URL** → لـ `NEXT_PUBLIC_SUPABASE_URL`
+- **anon public / publishable key** → لـ `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **service_role key** → لـ `SUPABASE_SERVICE_ROLE_KEY`
 
-> ⚠️ المفتاح `anon` آمن للوجود في المتصفح لأنه محمي بـ RLS. لا تستخدم مفتاح
-> `service_role` في كود الواجهة إطلاقاً.
+وأنشئ بنفسك نصاً عشوائياً طويلاً (16 حرفاً على الأقل، ويفضل 24+) ليكون
+`SUPERVISOR_SETUP_SECRET`. هذا مفتاح مالك مؤقت يستخدم مرة واحدة في
+`/setup`، وليس كود دخول المشرفة.
 
-### 1.5 ترقية حسابك إلى مدرس (اختياري)
-
-بعد إنشاء حسابك من الموقع، شغّل هذا في SQL Editor مستبدلاً بريدك:
-
-```sql
-update public.profiles
-   set role = 'teacher'
- where id = (select id from auth.users where email = 'you@university.edu');
-```
+> ⚠️ `service_role` و`SUPERVISOR_SETUP_SECRET` سرّيان خادميان فقط. لا
+> تضفهما إلى GitHub ولا تستخدم لهما بادئة `NEXT_PUBLIC_` ولا ترسلهما في
+> المحادثة. أدخلهما بنفسك في إعدادات Vercel فقط.
 
 ---
 
-## المرحلة 2 — رفع المشروع إلى GitHub
+## المرحلة 2 — إعداد Vercel
 
-المستودع مُهيأ محلياً بفرع `main` وأول Commit جاهز. اختر طريقة واحدة:
+### 2.1 المشروع والفرع
 
-### الطريقة أ — سطر الأوامر (موصى بها)
+إن كان مشروع Vercel مربوطاً بالمستودع أصلاً فافتحه ولا تنشئ نسخة ثانية.
+وإلا: **Add New → Project** → استورد `Gentely/1x1winner`.
 
-1. على [github.com/new](https://github.com/new) أنشئ مستودعاً باسم
-   `tower-of-english` **دون** README أو .gitignore (المشروع يحويها مسبقاً).
-2. من مجلد المشروع:
+- Framework: **Next.js**
+- Root Directory: جذر المستودع
+- Production Branch: `main`
+- Node.js Version: **22.x**
 
-```bash
-git remote add origin https://github.com/YOUR-USERNAME/tower-of-english.git
-git push -u origin main
-```
+### 2.2 Environment Variables
 
-سيطلب GitHub تسجيل الدخول (استخدم Personal Access Token من
-Settings → Developer settings بدل كلمة المرور).
-
-### الطريقة ب — الرفع اليدوي بدون Git
-
-1. على [github.com/new](https://github.com/new) أنشئ مستودعاً جديداً.
-2. اضغط **uploading an existing file** واسحب كل ملفات المشروع **باستثناء**
-   `node_modules` و`.next` (هما موجودان في `.gitignore` ولن يُرفعا عبر Git أصلاً).
-3. Commit changes.
-
-> 🔒 تأكد قبل الرفع أن `.env.local` غير موجود في المستودع — `.gitignore`
-> يمنعه، والنسخة المرفوعة تحتوي فقط على `.env.local.example` كقالب.
-
----
-
-## المرحلة 3 — النشر على Vercel
-
-### 3.1 الاستيراد
-
-1. افتح [vercel.com](https://vercel.com) وسجّل الدخول بحساب GitHub.
-2. **Add New → Project** → اختر مستودع `tower-of-english` → **Import**.
-3. Vercel يتعرف على Next.js تلقائياً — لا تغيّر إعدادات البناء
-   (`npm run build` و`npm run start` مملوءة آلياً).
-
-### 3.2 متغيرات البيئة
-
-في شاشة الاستيراد افتح **Environment Variables** وأضف متغيرين (لبيئة
-Production، ثم كررهما لـ Preview وDevelopment إن رغبت):
+من **Settings → Environment Variables** أضف التالي لبيئتي **Production**
+و**Preview**:
 
 | Name | Value |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://abcdefgh.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | المفتاح `anon` الطويل |
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL من Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public / publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key (سري خادم فقط) |
+| `SUPERVISOR_SETUP_SECRET` | مفتاح إعداد المالك العشوائي الطويل (سري خادم فقط) |
 
-### 3.3 إصدار Node (اختياري لكن موصى به)
-
-في **Settings → General → Node.js Version** اختر **22.x** لإسكات تحذير
-دعم Supabase المستقبلي (التطبيق يعمل على 20 أيضاً).
-
-### 3.4 النشر
-
-اضغط **Deploy** وانتظر 1–2 دقيقة. عند النجاح ستحصل على رابط:
-`https://tower-of-english-xxx.vercel.app`.
-
-### 3.5 إكمال حلقة المصادقة
-
-ارجع للخطوة 1.3 وضع رابط Vercel في **Supabase → URL Configuration**،
-وإلا سيفشل تأكيد البريد وإعادة التوجيه بعد الدخول.
+بعد الإضافة نفّذ **Deploy/Redeploy** واحتفظ برابط الإنتاج الناتج.
 
 ---
 
-## ✅ اختبار شامل بعد النشر (Smoke Test)
+## المرحلة 3 — إنشاء المشرفة الأولى
 
-1. افتح الرابط → تظهر صفحة الهبوط، وجرّب `/demo` بلا حساب.
-2. أنشئ حسابين في متصفحين (أو نافذة عادية + نافذة خفية):
-   - الحساب الأول: **Create a new room** وانسخ الكود.
-   - الحساب الثاني: الصق الكود في **Join room**.
-3. يضغط المضيف **Start the race**، يجيب الحساب الأول وتشاهد رمز الفريق
-   يتحرك فوراً في المتصفح الثاني → Realtime يعمل.
-4. اختبر المؤقّت (20 ثانية) وانتهاء الدور، ثم أوصل أحد الفريقين للطابق 10
-   لرؤية نافذة الاحتفال والشارات.
-5. افتح `/dashboard` للإحصائيات والمتصدرين، وبعد ترقيتك لمدرس ستظهر لوحة
-   إضافة وأرشفة الأسئلة.
+1. افتح: `https://YOUR-APP.vercel.app/setup`
+2. أدخل:
+   - **Owner setup key:** قيمة `SUPERVISOR_SETUP_SECRET` التي وضعتها في
+     Vercel.
+   - **Supervisor name:** اسم المشرفة كما ستكتبه عند كل دخول (عربي أو
+     إنجليزي، 3–30 حرفاً).
+   - **Supervisor access code:** كود خاص بالمشرفة، 8 أحرف على الأقل، ثم
+     كرره.
+3. اضغط **Create supervisor**. عند النجاح ستنتقل لصفحة الدخول.
+4. ادخل بالاسم والكود نفسيهما.
+
+تُقفل صفحة `/setup` تلقائياً بمجرد وجود مشرفة. ولحماية إضافية يمكنك بعد
+نجاح الإعداد حذف `SUPERVISOR_SETUP_SECRET` من Vercel وإعادة النشر.
+
+## المرحلة 4 — المشرفة تضيف الطلبة
+
+بعد دخول المشرفة:
+
+1. افتح `/dashboard` ثم قسم **Player accounts**.
+2. لكل طالب أدخل:
+   - **Player name:** اسماً فريداً كما سيكتبه الطالب عند الدخول، عربي أو
+     إنجليزي، 3–30 حرفاً. إذا تشابه اسمان أضف اسماً أوسط أو العائلة
+     لتمييزهما.
+   - **Access code:** كوداً شخصياً من 6 أحرف على الأقل، أو اضغط
+     **Generate** لتوليد كود.
+3. اضغط **Add player**، ثم أعطِ الطالب الاسم والكود مباشرة واحفظهما في
+   سجل المشرفة الخاص. **لا يمكن عرض الكود لاحقاً من النظام**؛ إذا فُقد
+   تستخدم **Reset** لتعيين كود جديد.
+4. يمكن تعطيل حساب مؤقتاً بزر **Disable** وإعادة تفعيله بزر **Enable**.
+
+يدخل الطالب من `/login` بالاسم والكود فقط. في الأسماء الإنجليزية لا تهم
+حالة الحروف أو المسافات الزائدة، أما حروف الاسم نفسه فيجب أن تطابق ما
+أدخلته المشرفة.
 
 ---
 
-## 🔄 دورة التطوير بعد النشر
+## ✅ اختبار شامل بعد النشر
 
-أي تعديل لاحقاً:
+1. افتح الموقع وجرّب `/demo` بلا حساب.
+2. ادخل كمشرفة وأنشئ لاعبين تجريبيين من **Player accounts**.
+3. افتح متصفحين (أو نافذة عادية + نافذة خفية):
+   - اللاعب الأول: **Create a new room** وانسخ كود الغرفة.
+   - اللاعب الثاني: الصق كود الغرفة في **Join room**.
+4. ابدأ السباق وأجب من متصفح، وتأكد أن الرمز يتحرك فوراً في الثاني.
+5. افتح `/dashboard` كطالب للإحصائيات، وكمشرفة لإدارة اللاعبين وبنك
+   الأسئلة.
 
-```bash
-git add .
-git commit -m "وصف التعديل"
-git push
-```
+## 🩺 حل المشكلات
 
-Vercel يعيد البناء والنشر تلقائياً خلال دقيقة، وكل فرع جانبي ينشئ له
-**Preview Deployment** مستقل للمراجعة قبل الدمج.
-
-لتعديل متغيرات البيئة لاحقاً: **Vercel → Settings → Environment Variables**
-ثم Redeploy من تبويب Deployments.
-
----
-
-## 🩺 حل المشكلات الشائعة
-
-| العَرَض | السبب والحل |
+| العَرَض | الحل |
 | --- | --- |
-| `Missing Supabase env vars` | المتغيران غير مضبوطين في Vercel — أضفهما ثم Redeploy. |
-| فشل تسجيل الدخول/إعادة توجيه فارغة | نسيت وضع رابط Vercel في Supabase URL Configuration (الخطوة 3.5). |
-| `relation does not exist` | أحد ملفات SQL لم يُشغّل أو خرج عن الترتيب — أعد تشغيل الملف الناقص. |
-| الرموز لا تتحرك في المتصفح الثاني | تأكد أن ملفي `schema.sql` فعّلا publication: `alter publication supabase_realtime add table ...` |
-| `TEACHER_ONLY` | حسابك ما زال بدور student — نفّذ SQL الترقية في الخطوة 1.5. |
-| خطأ 500 بعد تحديث كبير على Vercel | Deployments → أحدث نشر → Redeploy (يمسح كاش البناء). |
-| البريد التأكيدي لا يصل | عطّل Confirm email للتجربة، أو تحقق من Spam، أو استخدم Supabase SMTP مخصص في الإنتاج. |
+| `Supervisor setup is not configured` | أحد سرّي الخادم ناقص في Vercel أو `SUPERVISOR_SETUP_SECRET` أقصر من 16 حرفاً؛ صححه ثم Redeploy. |
+| `The setup key is incorrect` | قارن القيمة بمفتاح Vercel بدقة. |
+| `Supervisor setup is already complete` | توجد مشرفة أصلاً؛ ادخل من `/login`. |
+| `A player with this name already exists` | اسم الدخول يجب أن يكون فريداً؛ أضف اسماً أوسط/العائلة. |
+| `Incorrect name or access code` | تحقق من حروف الاسم والكود، وأن الحساب غير معطّل؛ المشرفة تستطيع Reset للكود. |
+| لا يظهر قسم Player accounts | الحساب الداخلي ليس بدور المشرفة (`teacher`) أو لم يُنشأ عبر `/setup`. |
+| `MANAGED_ACCOUNTS_ONLY` | متوقع عند محاولة إنشاء مستخدم يدوياً من Supabase؛ أنشئ الحسابات من التطبيق فقط. |
+| `relation does not exist` | أحد ملفات SQL لم يُشغّل أو خالف الترتيب. |
+| الرموز لا تتحرك في المتصفح الثاني | تأكد من تشغيل `schema.sql` كاملاً الذي يفعّل Realtime على جداول الغرف. |
+| حساب بريد قديم لم يعد يدخل | واجهة البريد أُزيلت عمداً؛ أنشئ للشخص حساب اسم + كود من لوحة المشرفة. |
 
----
+## دورة التحديث
 
-## 📦 ما هو جاهز في الكود الحالي
-
-- Middleware يحمي `/lobby` و`/room/*` و`/dashboard` ويعيد التوجيه لـ `/login`.
-- لا أسرار في الكود: كل المفاتيح عبر متغيرات بيئة عامة + حماية RLS وRPC.
-- البناء الإنتاجي `npm run build` و107 اختباراً ناجحاً محلياً قبل الرفع.
+أي دمج إلى `main` يجعل Vercel يعيد البناء والنشر تلقائياً. عند تغيير أي
+Environment Variable يجب عمل Redeploy ليدخل حيز التنفيذ.

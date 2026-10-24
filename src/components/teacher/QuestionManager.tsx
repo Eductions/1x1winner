@@ -293,7 +293,7 @@ function FormField({
 }
 
 function friendlyTeacherError(message: string): string {
-  if (message.includes("TEACHER_ONLY")) return "Only teachers can manage questions.";
+  if (message.includes("TEACHER_ONLY")) return "Only the supervisor can manage questions.";
   if (message.includes("OPTIONS_MUST_BE_FOUR")) return "A question needs exactly four options.";
   if (message.includes("PROMPT_TOO_SHORT")) return "The prompt is too short.";
   return friendlyErrorMessage(message);

@@ -24,7 +24,7 @@ export default async function LobbyPage() {
     .single();
 
   const username =
-    profile?.username ?? user.user_metadata?.username ?? user.email?.split("@")[0] ?? "Player";
+    profile?.username ?? user.user_metadata?.username ?? "Player";
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
